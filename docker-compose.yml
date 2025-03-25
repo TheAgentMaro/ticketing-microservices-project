@@ -1,0 +1,21 @@
+version: '3'
+services:
+  event-service:
+    build: ./event-service
+    ports:
+      - "3001:3001"
+  # Ajouter autres services ici
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ticketing
+    ports:
+      - "5432:5432"
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
