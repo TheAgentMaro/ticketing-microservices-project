@@ -28,7 +28,7 @@ const connectRabbitMQ = async (): Promise<Channel> => {
     const connection = await amqp.connect(RABBITMQ_URL);
     
     // Gérer la fermeture de la connexion
-    connection.on('error', (err) => {
+    connection.on('error', (err: Error) => {
       logger.error(`Erreur de connexion RabbitMQ: ${err}`);
       channel = null;
     });
