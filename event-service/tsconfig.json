@@ -5,8 +5,10 @@
       "outDir": "./dist",
       "rootDir": "./src",
       "strict": true,
-      "esModuleInterop": true
+      "esModuleInterop": true,
+      "sourceMap": true,
+      "skipLibCheck": true
     },
     "include": ["src/**/*"],
-    "exclude": ["node_modules"]
+    "exclude": ["node_modules", "dist"]
   }

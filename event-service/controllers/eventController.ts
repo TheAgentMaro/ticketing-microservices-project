@@ -1,21 +1,25 @@
 import { Request, Response } from 'express';
-
-// Simuler une base de données en mémoire (remplacer par PostgreSQL plus tard)
-const events: any[] = [];
+import { createEventService, getAllEventsService, getEventByIdService, updateEventService, deleteEventService } from '../services/eventService';
+import logger from '../utils/logger';
 
 /**
  * Créer un nouvel événement
- * @param req Requête contenant les détails de l'événement
- * @param res Réponse avec l'événement créé ou une erreur
+ * @param req Requête avec les données de l'événement
+ * @param res Réponse avec l'événement créé
  */
-export const createEvent = (req: Request, res: Response) => {
-  const { name, date, maxTickets } = req.body;
-  if (!name || !date || !maxTickets) {
-    return res.status(400).json({ error: 'Tous les champs sont requis' });
+export const createEvent = async (req: Request, res: Response) => {
+  const { name, date, max_tickets } = req.body;
+  if (!name || !date || !max_tickets) {
+    logger.warn('Tentative de création avec des champs manquants');
+    return res.status(400).json({ error: 'Tous les champs (name, date, max_tickets) sont requis' });
   }
-  const event = { id: events.length + 1, name, date, maxTickets };
-  events.push(event);
-  res.status(201).json(event);
+  try {
+    const event = await createEventService({ name, date, max_tickets });
+    res.status(201).json(event);
+  } catch (error) {
+    logger.error(`Erreur lors de la création de l'événement : ${error}`);
+    res.status(500).json({ error: 'Erreur serveur lors de la création' });
+  }
 };
 
 /**
@@ -23,32 +27,74 @@ export const createEvent = (req: Request, res: Response) => {
  * @param req Requête vide
  * @param res Réponse avec la liste des événements
  */
-export const getEvents = (req: Request, res: Response) => {
-  res.json(events);
+export const getEvents = async (req: Request, res: Response) => {
+  try {
+    const events = await getAllEventsService();
+    res.json(events);
+  } catch (error) {
+    logger.error(`Erreur lors de la récupération des événements : ${error}`);
+    res.status(500).json({ error: 'Erreur serveur lors de la récupération' });
+  }
 };
 
 /**
- * Mettre à jour un événement existant
- * @param req Requête avec l'ID et les nouvelles données
- * @param res Réponse avec l'événement mis à jour ou une erreur
+ * Récupérer un événement par ID
+ * @param req Requête avec l'ID
+ * @param res Réponse avec l'événement
  */
-export const updateEvent = (req: Request, res: Response) => {
+export const getEvent = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const event = events.find(e => e.id === parseInt(id));
-  if (!event) return res.status(404).json({ error: 'Événement non trouvé' });
-  Object.assign(event, req.body);
-  res.json(event);
+  try {
+    const event = await getEventByIdService(parseInt(id));
+    if (!event) {
+      logger.warn(`Événement non trouvé pour l'ID : ${id}`);
+      return res.status(404).json({ error: 'Événement non trouvé' });
+    }
+    res.json(event);
+  } catch (error) {
+    logger.error(`Erreur lors de la récupération de l'événement ${id} : ${error}`);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+/**
+ * Mettre à jour un événement
+ * @param req Requête avec l'ID et les nouvelles données
+ * @param res Réponse avec l'événement mis à jour
+ */
+export const updateEvent = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, date, max_tickets } = req.body;
+  if (!name || !date || !max_tickets) {
+    logger.warn(`Tentative de mise à jour de l'événement ${id} avec des champs manquants`);
+    return res.status(400).json({ error: 'Tous les champs (name, date, max_tickets) sont requis' });
+  }
+  try {
+    const event = await updateEventService(parseInt(id), { name, date, max_tickets });
+    if (!event) return res.status(404).json({ error: 'Événement non trouvé' });
+    res.json(event);
+  } catch (error) {
+    logger.error(`Erreur lors de la mise à jour de l'événement ${id} : ${error}`);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 };
 
 /**
  * Supprimer un événement
- * @param req Requête avec l'ID de l'événement
+ * @param req Requête avec l'ID
  * @param res Réponse confirmant la suppression
  */
-export const deleteEvent = (req: Request, res: Response) => {
+export const deleteEvent = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const index = events.findIndex(e => e.id === parseInt(id));
-  if (index === -1) return res.status(404).json({ error: 'Événement non trouvé' });
-  events.splice(index, 1);
-  res.status(204).send();
+  try {
+    const rowCount = await deleteEventService(parseInt(id));
+    if (rowCount === 0) {
+      logger.warn(`Événement non trouvé pour suppression : ${id}`);
+      return res.status(404).json({ error: 'Événement non trouvé' });
+    }
+    res.status(204).send();
+  } catch (error) {
+    logger.error(`Erreur lors de la suppression de l'événement ${id} : ${error}`);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 };
