@@ -2,11 +2,24 @@ openapi: 3.0.0
 info:
   title: Event Service API
   version: 1.0.0
-  description: API pour gérer les événements dans le système de billetterie
+  description: API pour gérer les événements dans le système de billetterie, permettant la création, la consultation, la mise à jour et la suppression des événements.
+  contact:
+    name: Équipe de développement
+    email: support@ticketing-system.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:9090/api/events
+    description: Serveur local via Nginx (port 9090)
+
 paths:
-  /api/events:
+  /:
     post:
-      summary: Créer un événement (event_creator ou admin)
+      summary: Créer un événement
+      description: Permet à un créateur d’événements ou un admin de créer un nouvel événement avec un nom, une date et un nombre maximum de billets.
+      operationId: createEvent
       security:
         - bearerAuth: []
       requestBody:
@@ -14,70 +27,300 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name: { type: string }
-                date: { type: string, format: date-time }
-                max_tickets: { type: integer }
+              $ref: '#/components/schemas/EventRequest'
+            example:
+              name: "Concert de Rock"
+              date: "2025-04-01T20:00:00Z"
+              max_tickets: 100
       responses:
-        '201': { description: Événement créé }
-        '400': { description: Champs invalides }
-        '401': { description: Non authentifié }
-        '403': { description: Non autorisé }
+        '201':
+          description: Événement créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+              example:
+                id: 1
+                name: "Concert de Rock"
+                date: "2025-04-01T20:00:00Z"
+                max_tickets: 100
+        '400':
+          description: Requête invalide (champs manquants ou invalides)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Le nom, la date et le nombre maximum de billets sont requis"
+        '401':
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Token requis"
+        '403':
+          description: Non autorisé (pas event_creator ou admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Accès réservé aux créateurs d’événements ou admins"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur lors de la création"
+
     get:
       summary: Lister tous les événements
+      description: Retourne la liste complète des événements disponibles, accessible à tous les utilisateurs (authentifiés ou non).
+      operationId: getAllEvents
       responses:
-        '200': { description: Liste des événements }
-  /api/events/{id}:
+        '200':
+          description: Liste des événements récupérée avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventResponse'
+              example:
+                - id: 1
+                  name: "Concert de Rock"
+                  date: "2025-04-01T20:00:00Z"
+                  max_tickets: 100
+                - id: 2
+                  name: "Théâtre Classique"
+                  date: "2025-04-02T19:00:00Z"
+                  max_tickets: 50
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur lors de la récupération"
+
+  /{id}:
     get:
-      summary: Récupérer un événement
+      summary: Récupérer un événement par ID
+      description: Retourne les détails d’un événement spécifique en fonction de son ID, accessible à tous les utilisateurs.
+      operationId: getEventById
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer }
+          schema:
+            type: integer
+          description: Identifiant de l’événement
       responses:
-        '200': { description: Événement trouvé }
-        '404': { description: Événement non trouvé }
+        '200':
+          description: Événement trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+              example:
+                id: 1
+                name: "Concert de Rock"
+                date: "2025-04-01T20:00:00Z"
+                max_tickets: 100
+        '404':
+          description: Événement non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Événement non trouvé"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur"
+
     put:
-      summary: Mettre à jour un événement (event_creator ou admin)
+      summary: Mettre à jour un événement
+      description: Permet à un créateur d’événements ou un admin de modifier les détails d’un événement existant.
+      operationId: updateEvent
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer }
+          schema:
+            type: integer
+          description: Identifiant de l’événement à mettre à jour
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name: { type: string }
-                date: { type: string, format: date-time }
-                max_tickets: { type: integer }
+              $ref: '#/components/schemas/EventRequest'
+            example:
+              name: "Concert de Rock - Édition Spéciale"
+              date: "2025-04-01T21:00:00Z"
+              max_tickets: 150
       responses:
-        '200': { description: Événement mis à jour }
-        '404': { description: Événement non trouvé }
-        '401': { description: Non authentifié }
-        '403': { description: Non autorisé }
+        '200':
+          description: Événement mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+              example:
+                id: 1
+                name: "Concert de Rock - Édition Spéciale"
+                date: "2025-04-01T21:00:00Z"
+                max_tickets: 150
+        '400':
+          description: Requête invalide (champs manquants ou invalides)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Le nom, la date et le nombre maximum de billets sont requis"
+        '401':
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Token requis"
+        '403':
+          description: Non autorisé (pas event_creator ou admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Accès réservé aux créateurs d’événements ou admins"
+        '404':
+          description: Événement non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Événement non trouvé"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur"
+
     delete:
-      summary: Supprimer un événement (event_creator ou admin)
+      summary: Supprimer un événement
+      description: Permet à un créateur d’événements ou un admin de supprimer un événement existant.
+      operationId: deleteEvent
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer }
+          schema:
+            type: integer
+          description: Identifiant de l’événement à supprimer
       responses:
-        '204': { description: Suppression réussie }
-        '404': { description: Événement non trouvé }
-        '401': { description: Non authentifié }
-        '403': { description: Non autorisé }
+        '204':
+          description: Événement supprimé avec succès
+        '401':
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Token requis"
+        '403':
+          description: Non autorisé (pas event_creator ou admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Accès réservé aux créateurs d’événements ou admins"
+        '404':
+          description: Événement non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Événement non trouvé"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur"
+
 components:
+  schemas:
+    EventRequest:
+      type: object
+      required:
+        - name
+        - date
+        - max_tickets
+      properties:
+        name:
+          type: string
+          description: Nom de l’événement
+          minLength: 1
+          maxLength: 255
+        date:
+          type: string
+          format: date-time
+          description: Date et heure de l’événement (format ISO 8601)
+        max_tickets:
+          type: integer
+          description: Nombre maximum de billets disponibles
+          minimum: 1
+
+    EventResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identifiant unique de l’événement
+        name:
+          type: string
+          description: Nom de l’événement
+        date:
+          type: string
+          format: date-time
+          description: Date et heure de l’événement
+        max_tickets:
+          type: integer
+          description: Nombre maximum de billets
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Message d’erreur
+
   securitySchemes:
     bearerAuth:
       type: http

@@ -2,69 +2,411 @@ openapi: 3.0.0
 info:
   title: User Service API
   version: 1.0.0
-  description: API pour gérer les utilisateurs dans le système de billetterie
+  description: API pour gérer les utilisateurs dans le système de billetterie, incluant la création, la consultation, la mise à jour et la suppression des utilisateurs.
+  contact:
+    name: Équipe de développement
+    email: support@ticketing-system.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:9090/api/users
+    description: Serveur local via Nginx (port 9090)
+
 paths:
-  /api/users:
-    get:
-      summary: Lister tous les utilisateurs (admin uniquement)
+  /:
+    post:
+      summary: Créer un utilisateur (admin uniquement)
+      description: Permet à un administrateur de créer manuellement un nouvel utilisateur avec un nom d’utilisateur, un mot de passe et un rôle.
+      operationId: createUser
       security:
         - bearerAuth: []
-      responses:
-        '200': { description: Liste des utilisateurs }
-        '401': { description: Non authentifié }
-        '403': { description: Non autorisé }
-  /api/users/{id}:
-    get:
-      summary: Récupérer un utilisateur
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer }
-      responses:
-        '200': { description: Utilisateur trouvé }
-        '404': { description: Utilisateur non trouvé }
-        '401': { description: Non authentifié }
-    put:
-      summary: Mettre à jour un utilisateur (admin uniquement)
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer }
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                username: { type: string }
-                role: { type: string, enum: [admin, event_creator, operator, user] }
+              $ref: '#/components/schemas/CreateUserRequest'
+            example:
+              username: "newuser"
+              password: "securepassword123"
+              role: "user"
       responses:
-        '200': { description: Utilisateur mis à jour }
-        '404': { description: Utilisateur non trouvé }
-        '401': { description: Non authentifié }
-        '403': { description: Non autorisé }
-    delete:
-      summary: Supprimer un utilisateur (admin uniquement)
+        '201':
+          description: Utilisateur créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              example:
+                id: 1
+                username: "newuser"
+                role: "user"
+        '400':
+          description: Requête invalide (champs manquants ou rôle invalide)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Username, password et role sont requis"
+        '401':
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Token requis"
+        '403':
+          description: Non autorisé (pas admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Accès réservé aux administrateurs"
+        '409':
+          description: Conflit (nom d’utilisateur déjà pris)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Ce nom d’utilisateur est déjà pris"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur lors de la création"
+
+    get:
+      summary: Lister tous les utilisateurs (admin uniquement)
+      description: Retourne la liste complète des utilisateurs enregistrés dans le système.
+      operationId: getAllUsers
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Liste des utilisateurs récupérée avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+              example:
+                - id: 1
+                  username: "adminuser"
+                  role: "admin"
+                - id: 2
+                  username: "johndoe"
+                  role: "user"
+        '401':
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Token requis"
+        '403':
+          description: Non autorisé (pas admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Accès réservé aux administrateurs"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur lors de la récupération"
+
+  /me:
+    get:
+      summary: Récupérer ses propres données
+      description: Retourne les informations de l’utilisateur actuellement authentifié via son token JWT.
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Données de l’utilisateur récupérées avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              example:
+                id: 2
+                username: "johndoe"
+                role: "user"
+        '401':
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Authentification requise"
+        '404':
+          description: Utilisateur non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Utilisateur non trouvé"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur lors de la récupération"
+
+  /{id}:
+    get:
+      summary: Récupérer un utilisateur par ID
+      description: Retourne les informations d’un utilisateur spécifique en fonction de son ID.
+      operationId: getUserById
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer }
+          schema:
+            type: integer
+          description: Identifiant de l’utilisateur
       responses:
-        '204': { description: Suppression réussie }
-        '404': { description: Utilisateur non trouvé }
-        '401': { description: Non authentifié }
-        '403': { description: Non autorisé }
+        '200':
+          description: Utilisateur trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              example:
+                id: 2
+                username: "johndoe"
+                role: "user"
+        '401':
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Token requis"
+        '404':
+          description: Utilisateur non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Utilisateur non trouvé"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur"
+
+    put:
+      summary: Mettre à jour un utilisateur (admin uniquement)
+      description: Permet à un administrateur de modifier le nom d’utilisateur ou le rôle d’un utilisateur existant.
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Identifiant de l’utilisateur à mettre à jour
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+            example:
+              username: "johndoe_updated"
+              role: "operator"
+      responses:
+        '200':
+          description: Utilisateur mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              example:
+                id: 2
+                username: "johndoe_updated"
+                role: "operator"
+        '400':
+          description: Requête invalide (champs manquants ou rôle invalide)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Username et role sont requis"
+        '401':
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Token requis"
+        '403':
+          description: Non autorisé (pas admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Accès réservé aux administrateurs"
+        '404':
+          description: Utilisateur non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Utilisateur non trouvé"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur"
+
+    delete:
+      summary: Supprimer un utilisateur (admin uniquement)
+      description: Permet à un administrateur de supprimer un utilisateur existant.
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Identifiant de l’utilisateur à supprimer
+      responses:
+        '204':
+          description: Utilisateur supprimé avec succès
+        '401':
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Token requis"
+        '403':
+          description: Non autorisé (pas admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Accès réservé aux administrateurs"
+        '404':
+          description: Utilisateur non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Utilisateur non trouvé"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur"
+
 components:
+  schemas:
+    CreateUserRequest:
+      type: object
+      required:
+        - username
+        - password
+        - role
+      properties:
+        username:
+          type: string
+          description: Nom d’utilisateur unique
+          minLength: 3
+          maxLength: 50
+        password:
+          type: string
+          description: Mot de passe de l’utilisateur
+          minLength: 6
+        role:
+          type: string
+          enum: [admin, event_creator, operator, user]
+          description: Rôle de l’utilisateur dans le système
+
+    UpdateUserRequest:
+      type: object
+      required:
+        - username
+        - role
+      properties:
+        username:
+          type: string
+          description: Nouveau nom d’utilisateur
+          minLength: 3
+          maxLength: 50
+        role:
+          type: string
+          enum: [admin, event_creator, operator, user]
+          description: Nouveau rôle de l’utilisateur
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identifiant unique de l’utilisateur
+        username:
+          type: string
+          description: Nom d’utilisateur
+        role:
+          type: string
+          enum: [admin, event_creator, operator, user]
+          description: Rôle de l’utilisateur
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Message d’erreur
+
   securitySchemes:
     bearerAuth:
       type: http
