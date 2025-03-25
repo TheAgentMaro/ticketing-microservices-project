@@ -12,8 +12,15 @@ COPY .env ./
 # Installer les dépendances
 RUN npm install
 
-# Copier le code source
-COPY src/ ./src/
+# Copier le code source (tous les fichiers .ts)
+COPY *.ts ./
+COPY controllers/ ./controllers/
+COPY models/ ./models/
+COPY routes/ ./routes/
+COPY services/ ./services/ 
+COPY config/ ./config/
+COPY utils/ ./utils/
+COPY tests/ ./tests/ 
 
 # Compiler TypeScript
 RUN npm run build
