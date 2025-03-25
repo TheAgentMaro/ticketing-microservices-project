@@ -2,36 +2,187 @@ openapi: 3.0.0
 info:
   title: Auth Service API
   version: 1.0.0
-  description: API pour l’authentification et l’inscription des utilisateurs
+  description: API pour gérer l’authentification et l’inscription des utilisateurs dans le système de billetterie.
+  contact:
+    name: Équipe de développement
+    email: support@ticketing-system.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:9090/api/auth
+    description: Serveur local via Nginx (port 9090)
+
 paths:
-  /api/auth/register:
+  /register:
     post:
-      summary: Inscrire un utilisateur
+      summary: Inscrire un nouvel utilisateur
+      description: Crée un nouvel utilisateur avec un nom d’utilisateur, un mot de passe et un rôle spécifique. Le mot de passe est hashé avant stockage.
+      operationId: registerUser
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                username: { type: string }
-                password: { type: string }
-                role: { type: string, enum: [admin, event_creator, operator, user] }
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              username: "johndoe"
+              password: "securepassword123"
+              role: "user"
       responses:
-        '201': { description: Utilisateur créé }
-        '400': { description: Champs manquants ou rôle invalide }
-  /api/auth/login:
+        '201':
+          description: Utilisateur créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              example:
+                id: 1
+                username: "johndoe"
+                role: "user"
+        '400':
+          description: Requête invalide (champs manquants ou rôle invalide)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Username, password et role sont requis"
+        '409':
+          description: Conflit (nom d’utilisateur déjà pris)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Ce nom d’utilisateur est déjà pris"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur lors de la création"
+
+  /login:
     post:
       summary: Connecter un utilisateur
+      description: Authentifie un utilisateur et retourne un token JWT pour les requêtes futures.
+      operationId: loginUser
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                username: { type: string }
-                password: { type: string }
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: "johndoe"
+              password: "securepassword123"
       responses:
-        '200': { description: Token JWT généré }
-        '401': { description: Échec de l’authentification }
+        '200':
+          description: Connexion réussie, token JWT retourné
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                user:
+                  id: 1
+                  username: "johndoe"
+                  role: "user"
+        '400':
+          description: Requête invalide (champs manquants)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Username et password sont requis"
+        '401':
+          description: Échec de l’authentification (mauvais identifiants)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Nom d’utilisateur ou mot de passe incorrect"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur lors de la connexion"
+
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - password
+        - role
+      properties:
+        username:
+          type: string
+          description: Nom d’utilisateur unique
+          minLength: 3
+          maxLength: 50
+        password:
+          type: string
+          description: Mot de passe de l’utilisateur
+          minLength: 6
+        role:
+          type: string
+          enum: [admin, event_creator, operator, user]
+          description: Rôle de l’utilisateur dans le système
+
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          description: Nom d’utilisateur
+          minLength: 3
+          maxLength: 50
+        password:
+          type: string
+          description: Mot de passe
+          minLength: 6
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identifiant unique de l’utilisateur
+        username:
+          type: string
+          description: Nom d’utilisateur
+        role:
+          type: string
+          enum: [admin, event_creator, operator, user]
+          description: Rôle de l’utilisateur
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Token JWT pour l’authentification
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Message d’erreur
