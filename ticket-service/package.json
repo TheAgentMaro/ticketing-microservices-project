@@ -9,6 +9,8 @@
         "test": "jest"
     },
     "dependencies": {
+        "@types/amqplib": "^0.10.7",
+        "amqplib": "^0.10.5",
         "auth-service": "file:",
         "bcrypt": "^5.1.1",
         "dotenv": "^16.4.7",
