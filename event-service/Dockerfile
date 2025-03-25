@@ -9,6 +9,7 @@ COPY package*.json ./
 COPY tsconfig.json ./
 COPY .env ./
 COPY types.d.ts ./
+COPY swagger.yaml ./
 
 # Installer les dépendances
 RUN npm install

@@ -1,0 +1,157 @@
+openapi: 3.0.0
+info:
+  title: Event Service API
+  description: API pour la gestion des événements et concerts
+  version: 1.0.0
+servers:
+  - url: /api
+    description: Serveur d'API local
+paths:
+  /events:
+    get:
+      summary: Liste tous les événements
+      tags:
+        - Événements
+      responses:
+        '200':
+          description: Liste des événements récupérée avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '500':
+          description: Erreur serveur
+    post:
+      summary: Crée un nouvel événement
+      tags:
+        - Événements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventInput'
+      responses:
+        '201':
+          description: Événement créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Données invalides
+        '500':
+          description: Erreur serveur
+  /events/{id}:
+    get:
+      summary: Récupère un événement par son ID
+      tags:
+        - Événements
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de l'événement
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Événement récupéré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          description: Événement non trouvé
+        '500':
+          description: Erreur serveur
+    put:
+      summary: Met à jour un événement
+      tags:
+        - Événements
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de l'événement
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventInput'
+      responses:
+        '200':
+          description: Événement mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Données invalides
+        '404':
+          description: Événement non trouvé
+        '500':
+          description: Erreur serveur
+    delete:
+      summary: Supprime un événement
+      tags:
+        - Événements
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de l'événement
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Événement supprimé avec succès
+        '404':
+          description: Événement non trouvé
+        '500':
+          description: Erreur serveur
+components:
+  schemas:
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identifiant unique de l'événement
+        name:
+          type: string
+          description: Nom de l'événement
+        date:
+          type: string
+          format: date-time
+          description: Date et heure de l'événement
+        max_tickets:
+          type: integer
+          description: Nombre maximum de billets disponibles
+      required:
+        - id
+        - name
+        - date
+        - max_tickets
+    EventInput:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Nom de l'événement
+        date:
+          type: string
+          format: date-time
+          description: Date et heure de l'événement
+        max_tickets:
+          type: integer
+          description: Nombre maximum de billets disponibles
+      required:
+        - name
+        - date
+        - max_tickets
