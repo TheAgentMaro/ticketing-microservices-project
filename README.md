@@ -42,17 +42,21 @@ L'application est basée sur une architecture microservices, avec les composants
 
 ## Services microservices
 
-### Auth Service (3002)
+### Auth Service (port interne 3002, exposé via 3003)
 Ce service gère l'authentification et l'inscription des utilisateurs. Il crée et vérifie les tokens JWT utilisés pour sécuriser les autres services.
+- Endpoints : `POST /register`, `POST /login`
 
-### User Service (3003)
+### User Service (port interne 3003, exposé via 3004)
 Ce service gère les informations des utilisateurs, avec des fonctionnalités CRUD accessibles principalement aux administrateurs.
+- Endpoints : `POST /`, `GET /`, `GET /me`, `GET /:id`, `PUT /:id`, `DELETE /:id`
 
-### Event Service (3001)
+### Event Service (port interne 3001, exposé via 3002)
 Ce service gère les événements (concerts), permettant leur création, modification et suppression par des créateurs d'événements ou des administrateurs.
+- Endpoints : `GET /`, `GET /:id`, `POST /`, `PUT /:id`, `DELETE /:id`
 
-### Ticket Service (3004)
+### Ticket Service (port interne 3004, exposé via 3005)
 Ce service gère l'achat de billets et envoie des confirmations asynchrones via RabbitMQ.
+- Endpoints : `POST /purchase`, `GET /my-tickets`, `GET /all` (opérateurs/admins uniquement)
 
 ## Technologies utilisées
 
@@ -64,12 +68,13 @@ Ce service gère l'achat de billets et envoie des confirmations asynchrones via 
 - **Documentation API** : Swagger/OpenAPI 3.0
 - **Tests** : Jest et Supertest
 - **Logging** : Winston
+- **Sécurité** : Bcrypt pour le hachage des mots de passe
 
 ## Configuration de l'infrastructure
 
 ### Docker Compose
 
-Notre `docker-compose.yml` orchestre tous les services nécessaires :
+Notre `docker-compose.yml` orchestre tous les services nécessaires. Assurez-vous de définir un fichier `.env` avec les variables suivantes : `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`, `JWT_SECRET`, `RABBITMQ_URL`, `MYSQL_ROOT_PASSWORD`, `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS`.
 
 ```yaml
 version: '3.8'
@@ -149,6 +154,7 @@ volumes:
   mysql-data:
   rabbitmq-data:
 ```
+*Les volumes `mysql-data` et `rabbitmq-data` assurent la persistance des données de MySQL et RabbitMQ entre les redémarrages.*
 
 ### Configuration Nginx (Load Balancer)
 
@@ -304,19 +310,18 @@ export const consumeQueue = async () => {
 Chaque service possède sa propre documentation Swagger accessible via les URL mentionnées ci-dessus. Voici un aperçu des principales API :
 
 ### Auth Service API
-
-- `POST /api/auth/register` : Inscription d'un utilisateur
+- `POST /api/auth/register` : Inscription d’un utilisateur
 - `POST /api/auth/login` : Connexion utilisateur et génération de token JWT
 
 ### User Service API
-
+- `POST /api/users` : Créer un utilisateur (admin uniquement)
 - `GET /api/users` : Liste des utilisateurs (admin uniquement)
+- `GET /api/users/me` : Récupérer ses propres données
 - `GET /api/users/{id}` : Récupérer un utilisateur spécifique
 - `PUT /api/users/{id}` : Mettre à jour un utilisateur (admin uniquement)
 - `DELETE /api/users/{id}` : Supprimer un utilisateur (admin uniquement)
 
 ### Event Service API
-
 - `GET /api/events` : Liste de tous les événements
 - `GET /api/events/{id}` : Récupérer un événement spécifique
 - `POST /api/events` : Créer un événement (event_creator ou admin)
@@ -324,15 +329,15 @@ Chaque service possède sa propre documentation Swagger accessible via les URL m
 - `DELETE /api/events/{id}` : Supprimer un événement (event_creator ou admin)
 
 ### Ticket Service API
-
 - `POST /api/tickets/purchase` : Acheter un billet
-- `GET /api/tickets/my-tickets` : Récupérer les billets de l'utilisateur connecté
+- `GET /api/tickets/my-tickets` : Récupérer les billets de l’utilisateur connecté
+- `GET /api/tickets/all` : Récupérer tous les billets (operator ou admin)
 
 ## Sécurité
 
 ### Authentification
 
-L'authentification est gérée par le service d'authentification qui émet des tokens JWT. Ces tokens contiennent l'ID de l'utilisateur, son nom d'utilisateur et son rôle.
+L’authentification est gérée par le service d’authentification qui émet des tokens JWT. Ces tokens contiennent l’ID de l’utilisateur, son nom d’utilisateur et son rôle, et sont vérifiés par chaque service via un middleware `authenticateToken`.
 
 ### Autorisation
 
@@ -424,6 +429,9 @@ const logger = winston.createLogger({
 2. **Résilience** : La défaillance d'un service n'affecte pas l'ensemble du système
 3. **Technologie adaptée** : Chaque service peut utiliser la technologie la plus adaptée à sa fonction
 4. **Développement parallèle** : Les équipes peuvent travailler en parallèle sur différents services
+
+### Pourquoi Nginx ?
+Utilisé comme API Gateway pour unifier les points d’entrée et répartir la charge entre les services.
 
 ### Pourquoi RabbitMQ ?
 
