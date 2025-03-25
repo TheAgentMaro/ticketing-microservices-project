@@ -1,0 +1,72 @@
+openapi: 3.0.0
+info:
+  title: User Service API
+  version: 1.0.0
+  description: API pour gérer les utilisateurs dans le système de billetterie
+paths:
+  /api/users:
+    get:
+      summary: Lister tous les utilisateurs (admin uniquement)
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Liste des utilisateurs }
+        '401': { description: Non authentifié }
+        '403': { description: Non autorisé }
+  /api/users/{id}:
+    get:
+      summary: Récupérer un utilisateur
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Utilisateur trouvé }
+        '404': { description: Utilisateur non trouvé }
+        '401': { description: Non authentifié }
+    put:
+      summary: Mettre à jour un utilisateur (admin uniquement)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username: { type: string }
+                role: { type: string, enum: [admin, event_creator, operator, user] }
+      responses:
+        '200': { description: Utilisateur mis à jour }
+        '404': { description: Utilisateur non trouvé }
+        '401': { description: Non authentifié }
+        '403': { description: Non autorisé }
+    delete:
+      summary: Supprimer un utilisateur (admin uniquement)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { description: Suppression réussie }
+        '404': { description: Utilisateur non trouvé }
+        '401': { description: Non authentifié }
+        '403': { description: Non autorisé }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
