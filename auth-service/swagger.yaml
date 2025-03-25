@@ -1,0 +1,37 @@
+openapi: 3.0.0
+info:
+  title: Auth Service API
+  version: 1.0.0
+  description: API pour l’authentification et l’inscription des utilisateurs
+paths:
+  /api/auth/register:
+    post:
+      summary: Inscrire un utilisateur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username: { type: string }
+                password: { type: string }
+                role: { type: string, enum: [admin, event_creator, operator, user] }
+      responses:
+        '201': { description: Utilisateur créé }
+        '400': { description: Champs manquants ou rôle invalide }
+  /api/auth/login:
+    post:
+      summary: Connecter un utilisateur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username: { type: string }
+                password: { type: string }
+      responses:
+        '200': { description: Token JWT généré }
+        '401': { description: Échec de l’authentification }

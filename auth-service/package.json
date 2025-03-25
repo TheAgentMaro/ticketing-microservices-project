@@ -11,9 +11,11 @@
     "dependencies": {
         "@types/express": "^5.0.1",
         "@types/mysql": "^2.15.26",
+        "@types/supertest": "^6.0.3",
         "@types/swagger-ui-express": "^4.1.6",
         "@types/winston": "^2.4.4",
         "auth-service": "file:",
+        "bcrypt": "^5.1.1",
         "dotenv": "^16.4.7",
         "event-service": "file:",
         "express": "^4.21.2",
