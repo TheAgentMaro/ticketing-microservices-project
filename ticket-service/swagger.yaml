@@ -2,11 +2,24 @@ openapi: 3.0.0
 info:
   title: Ticket Service API
   version: 1.0.0
-  description: API pour gérer l’achat et la récupération des billets
+  description: API pour gérer l’achat et la récupération des billets dans le système de billetterie, incluant l’achat de billets, la consultation des billets personnels et la liste complète pour les opérateurs/admins.
+  contact:
+    name: Équipe de développement
+    email: support@ticketing-system.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:9090/api/tickets
+    description: Serveur local via Nginx (port 9090)
+
 paths:
-  /api/tickets/purchase:
+  /purchase:
     post:
       summary: Acheter un billet
+      description: Permet à un utilisateur authentifié d’acheter un billet pour un événement spécifique, avec vérification de disponibilité et simulation de paiement.
+      operationId: purchaseTicket
       security:
         - bearerAuth: []
       requestBody:
@@ -14,22 +27,190 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                eventId: { type: integer }
+              $ref: '#/components/schemas/PurchaseRequest'
+            example:
+              eventId: 1
       responses:
-        '201': { description: Billet créé }
-        '400': { description: Champs manquants ou erreur d’achat }
-        '401': { description: Non authentifié }
-  /api/tickets/my-tickets:
+        '201':
+          description: Billet acheté avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketResponse'
+              example:
+                id: 1
+                event_id: 1
+                user_id: 2
+                ticket_number: "TICKET-1711357923456-abc123"
+                purchase_date: "2025-03-25T10:32:03Z"
+        '400':
+          description: Requête invalide ou échec de l’achat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingField:
+                  value:
+                    error: "eventId et authentification requis"
+                noTickets:
+                  value:
+                    error: "Plus de billets disponibles"
+                paymentFailed:
+                  value:
+                    error: "Échec du paiement"
+        '401':
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Authentification requise"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur lors de l’achat"
+
+  /my-tickets:
     get:
       summary: Récupérer les billets de l’utilisateur
+      description: Retourne la liste des billets achetés par l’utilisateur actuellement authentifié.
+      operationId: getUserTickets
       security:
         - bearerAuth: []
       responses:
-        '200': { description: Liste des billets }
-        '401': { description: Non authentifié }
+        '200':
+          description: Liste des billets récupérée avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketResponse'
+              example:
+                - id: 1
+                  event_id: 1
+                  user_id: 2
+                  ticket_number: "TICKET-1711357923456-abc123"
+                  purchase_date: "2025-03-25T10:32:03Z"
+                - id: 2
+                  event_id: 2
+                  user_id: 2
+                  ticket_number: "TICKET-1711357987654-def456"
+                  purchase_date: "2025-03-25T10:33:07Z"
+        '401':
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Authentification requise"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur lors de la récupération"
+
+  /all:
+    get:
+      summary: Récupérer tous les billets
+      description: Retourne la liste complète des billets achetés dans le système, accessible uniquement aux opérateurs ou admins.
+      operationId: getAllTickets
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Liste complète des billets récupérée avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketResponse'
+              example:
+                - id: 1
+                  event_id: 1
+                  user_id: 2
+                  ticket_number: "TICKET-1711357923456-abc123"
+                  purchase_date: "2025-03-25T10:32:03Z"
+                - id: 2
+                  event_id: 2
+                  user_id: 3
+                  ticket_number: "TICKET-1711357987654-def456"
+                  purchase_date: "2025-03-25T10:33:07Z"
+        '401':
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Token requis"
+        '403':
+          description: Non autorisé (pas operator ou admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Accès réservé aux opérateurs ou admins"
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Erreur serveur lors de la récupération"
+
 components:
+  schemas:
+    PurchaseRequest:
+      type: object
+      required:
+        - eventId
+      properties:
+        eventId:
+          type: integer
+          description: Identifiant de l’événement pour lequel acheter un billet
+          minimum: 1
+
+    TicketResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identifiant unique du billet
+        event_id:
+          type: integer
+          description: Identifiant de l’événement associé
+        user_id:
+          type: integer
+          description: Identifiant de l’utilisateur ayant acheté le billet
+        ticket_number:
+          type: string
+          description: Numéro unique du billet
+        purchase_date:
+          type: string
+          format: date-time
+          description: Date et heure de l’achat (format ISO 8601)
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Message d’erreur
+
   securitySchemes:
     bearerAuth:
       type: http
