@@ -112,6 +112,16 @@ services:
     ports:
       - "5672:5672"  # Port AMQP
       - "15672:15672"  # Port de gestion (UI)
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - ticketing-network
 
@@ -135,3 +145,4 @@ networks:
 
 volumes:
   mysql-data:
+  rabbitmq-data:

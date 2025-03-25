@@ -5,7 +5,7 @@ import logger from '../utils/logger';
 /**
  * Créer un nouvel événement (event_creator ou admin uniquement)
  */
-export const createEvent = async (req: AuthRequest, res: Response) => {
+export const createEvent = async (req: Request, res: Response) => {
   const { name, date, max_tickets } = req.body;
   try {
     const event = await createEventService({ name, date, max_tickets });
@@ -47,7 +47,7 @@ export const getEvent = async (req: Request, res: Response) => {
 /**
  * Mettre à jour un événement (event_creator ou admin uniquement)
  */
-export const updateEvent = async (req: AuthRequest, res: Response) => {
+export const updateEvent = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, date, max_tickets } = req.body;
   try {
@@ -62,7 +62,7 @@ export const updateEvent = async (req: AuthRequest, res: Response) => {
 /**
  * Supprimer un événement (event_creator ou admin uniquement)
  */
-export const deleteEvent = async (req: AuthRequest, res: Response) => {
+export const deleteEvent = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const rowCount = await deleteEventService(parseInt(id));
