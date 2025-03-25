@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { createEventService, getAllEventsService, getEventByIdService, updateEventService, deleteEventService } from '../services/eventService';
-import { AuthRequest } from '../middleware/authMiddleware';
 import logger from '../utils/logger';
 
 /**
