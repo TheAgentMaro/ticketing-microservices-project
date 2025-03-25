@@ -5,7 +5,7 @@ services:
       context: ./event-service
       dockerfile: Dockerfile
     ports:
-      - "3001:3001"
+      - "0:3001"  # Docker assignera un port disponible automatiquement
     depends_on:
       - mysql
     environment:
