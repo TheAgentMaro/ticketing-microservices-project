@@ -1,21 +1,49 @@
-version: '3'
+version: '3.8'
 services:
   event-service:
-    build: ./event-service
+    build:
+      context: ./event-service
+      dockerfile: Dockerfile
     ports:
       - "3001:3001"
-  # Ajouter autres services ici
-  postgres:
-    image: postgres:13
+    depends_on:
+      - mysql
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: ticketing
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=ticketing
+      - DB_PORT=3306
+      - PORT=3001
+    networks:
+      - ticketing-network
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: ticketing
     ports:
-      - "5432:5432"
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - ticketing-network
+
   nginx:
     image: nginx:latest
     ports:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - event-service
+    networks:
+      - ticketing-network
+
+networks:
+  ticketing-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
