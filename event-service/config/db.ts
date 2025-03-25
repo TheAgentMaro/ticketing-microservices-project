@@ -1,14 +1,18 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import logger from '../utils/logger';
 
 // Charger les variables d'environnement depuis .env
 dotenv.config();
+
+// Log les informations de connexion (sans le mot de passe)
+logger.info(`Connexion à MySQL: ${process.env.DB_HOST}:${process.env.DB_PORT}, base: ${process.env.DB_NAME}`);
 
 // Configuration de la connexion à MySQL avec variables sécurisées
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'Ticket010203',
+  password: process.env.DB_PASSWORD || 'password',
   database: process.env.DB_NAME || 'ticketing',
   port: parseInt(process.env.DB_PORT || '3306'),
   waitForConnections: true,
