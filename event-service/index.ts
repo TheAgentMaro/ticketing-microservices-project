@@ -6,6 +6,7 @@ import { initEventTable } from './models/eventModel';
 import logger from './utils/logger';
 import dotenv from 'dotenv';
 import pool from './config/db';
+import path from 'path';
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -16,9 +17,21 @@ const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 
+// Servir les fichiers statiques
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Charger la documentation Swagger
-const swaggerDocument = yaml.load('./swagger.yaml');
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+try {
+  const swaggerDocument = yaml.load('./swagger.yaml');
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  
+  // Route de test pour vérifier que l'API est en fonctionnement
+  app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', service: 'event-service' });
+  });
+} catch (error) {
+  logger.error(`Erreur lors du chargement de la documentation Swagger: ${error}`);
+}
 
 // Routes pour les événements
 app.use('/api/events', eventRoutes);
