@@ -20,7 +20,7 @@ services:
       - ticketing-network
 
   mysql:
-    image: mysql:9.2.0
+    image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: ticketing
@@ -39,7 +39,7 @@ services:
   nginx:
     image: nginx:latest
     ports:
-      - "9090:80"  # Utilise le port 9090 au lieu de 8080 qui est occupé
+      - "9090:80"  # Utilise le port 9090 
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
