@@ -1,7 +1,7 @@
 import request from 'supertest';
 import express from 'express';
-import userRoutes from '../src/routes/userRoutes';
-import { initUserTable } from '../src/models/userModel';
+import userRoutes from '../routes/userRoutes';
+import { initUserTable } from '../models/userModel';
 import jwt from 'jsonwebtoken';
 
 const app = express();
