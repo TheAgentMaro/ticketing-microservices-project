@@ -1,5 +1,23 @@
-import { User, getAllUsers, getUserById, updateUser, deleteUser } from '../models/userModel';
+import { User, getAllUsers, getUserById, updateUser, deleteUser, createUser } from '../models/userModel';
 import logger from '../utils/logger';
+import bcrypt from 'bcrypt'; // Assurez-vous d'avoir bcrypt dans vos dépendances
+
+/**
+ * Créer un utilisateur
+ * @param user Données de l'utilisateur (username, role, password)
+ * @returns L'utilisateur créé
+ */
+export const createUserService = async (user: { username: string; role: string; password: string }): Promise<User> => {
+  try {
+    const hashedPassword = await bcrypt.hash(user.password, 10); // Hash du mot de passe
+    const newUser = await createUser({ username: user.username, role: user.role as any, password: hashedPassword });
+    logger.info(`Utilisateur créé avec succès : ${newUser.id}`);
+    return newUser;
+  } catch (error) {
+    logger.error(`Erreur lors de la création de l'utilisateur : ${error}`);
+    throw error;
+  }
+};
 
 /**
  * Récupérer tous les utilisateurs

@@ -4,10 +4,11 @@ export interface User {
   id?: number;
   username: string;
   role: 'admin' | 'event_creator' | 'operator' | 'user';
+  password?: string; // Ajouté pour la création
 }
 
 /**
- * Initialiser la table des utilisateurs (déjà créée par auth-service, mais on vérifie)
+ * Initialiser la table des utilisateurs
  */
 export const initUserTable = async () => {
   const query = `
@@ -19,6 +20,18 @@ export const initUserTable = async () => {
     );
   `;
   await pool.query(query);
+};
+
+/**
+ * Créer un utilisateur
+ * @param user Données de l'utilisateur
+ * @returns L'utilisateur créé
+ */
+export const createUser = async (user: { username: string; role: string; password: string }): Promise<User> => {
+  const query = 'INSERT INTO users (username, password, role) VALUES (?, ?, ?)';
+  const [result] = await pool.query(query, [user.username, user.password, user.role]);
+  const insertId = (result as any).insertId;
+  return { id: insertId, username: user.username, role: user.role as any };
 };
 
 /**
