@@ -30,7 +30,6 @@ Ce projet implémente un système de billetterie pour des concerts et événemen
 ## Architecture
 
 ![Architecture du système](Architecture.png)
-
 L'application est basée sur une architecture microservices, avec les composants suivants :
 
 - **Nginx** : Sert de point d'entrée unique (API Gateway) et équilibreur de charge
