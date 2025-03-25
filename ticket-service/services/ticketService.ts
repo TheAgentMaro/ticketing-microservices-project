@@ -1,6 +1,7 @@
 import { Ticket, getAvailableTickets, createTicket, getTicketsByUser } from '../models/ticketModel';
 import { sendToQueue } from '../config/rabbitmq';
 import logger from '../utils/logger';
+import pool from '../config/db'; // Ajout de cette importation
 
 /**
  * Simuler un paiement par carte bancaire

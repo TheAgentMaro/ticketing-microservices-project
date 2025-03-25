@@ -8,18 +8,12 @@ export interface AuthRequest extends Request {
   user?: { id: number; username: string; role: string };
 }
 
+// Définir une interface pour le payload JWT
 interface JwtPayload {
   id: number;
   username: string;
   role: string;
 }
-
-// Define JWT error types manually
-type JwtVerifyError = 
-  | { name: 'JsonWebTokenError'; message: string }
-  | { name: 'TokenExpiredError'; message: string; expiredAt: Date }
-  | { name: 'NotBeforeError'; message: string; date: Date }
-  | null;
 
 /**
  * Middleware pour vérifier le token JWT
@@ -29,23 +23,17 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    logger.warn("Tentative d'accès sans token");
+    logger.warn('Tentative d’accès sans token');
     return res.status(401).json({ error: 'Token requis' });
   }
 
-  jwt.verify(token, JWT_SECRET, (err: JwtVerifyError, decoded: any) => {
+  jwt.verify(token, JWT_SECRET, (err: Error | null, decoded: unknown) => {
     if (err) {
-      logger.warn('Token invalide ou expiré');
-      return res.status(403).json({ error: 'Token invalide ou expiré' });
+      logger.warn(`Token invalide ou expiré : ${err.message}`);
+      return res.status(403).json({ error: 'Token invalide' });
     }
-    
-    const user = decoded as JwtPayload;
-    req.user = {
-      id: user.id,
-      username: user.username,
-      role: user.role
-    };
-    
+
+    req.user = decoded as JwtPayload;
     next();
   });
 };
@@ -57,7 +45,7 @@ export const restrictToEventCreatorOrAdmin = (req: AuthRequest, res: Response, n
   const allowedRoles = ['event_creator', 'admin'];
   if (!req.user || !allowedRoles.includes(req.user.role)) {
     logger.warn(`Accès non autorisé pour l'utilisateur ${req.user?.username} avec rôle ${req.user?.role}`);
-    return res.status(403).json({ error: 'Accès réservé aux créateurs d\'événements ou admins' });
+    return res.status(403).json({ error: 'Accès réservé aux créateurs d’événements ou admins' });
   }
   next();
 };

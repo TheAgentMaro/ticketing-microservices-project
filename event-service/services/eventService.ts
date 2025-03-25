@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Event, createEvent, getAllEvents, getEventById, updateEvent, deleteEvent } from '../models/eventModel';
 import logger from '../utils/logger';
+import pool from '../config/db'; 
 
 // Schéma de validation pour un événement
 const eventSchema = z.object({

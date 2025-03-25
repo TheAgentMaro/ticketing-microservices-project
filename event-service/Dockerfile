@@ -22,6 +22,7 @@ COPY routes/ ./routes/
 COPY services/ ./services/ 
 COPY config/ ./config/
 COPY utils/ ./utils/
+COPY middleware/ ./middleware/
 COPY tests/ ./tests/ 
 
 # Compiler TypeScript
