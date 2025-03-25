@@ -29,7 +29,7 @@ Ce projet implémente un système de billetterie pour des concerts et événemen
 
 ## Architecture
 
-![Architecture du système](https://i.imgur.com/j8dLfhg.png)
+![Architecture du système](Architecture.png)
 
 L'application est basée sur une architecture microservices, avec les composants suivants :
 
@@ -282,7 +282,7 @@ export const consumeQueue = async () => {
 
 1. Cloner le dépôt :
    ```bash
-   git clone https://github.com/username/ticketing-microservices-project.git
+   git clone https://github.com/TheAgentMaro/ticketing-microservices-project.git
    cd ticketing-microservices-project
    ```
 
