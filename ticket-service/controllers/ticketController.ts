@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { buyTicket, getUserTicketsService } from '../services/ticketService';
+import { buyTicket, getUserTicketsService, getAllTicketsService } from '../services/ticketService';
 import { AuthRequest } from '../middleware/authMiddleware';
 import logger from '../utils/logger';
 
@@ -39,5 +39,17 @@ export const getUserTickets = async (req: AuthRequest, res: Response) => {
     res.json(tickets);
   } catch (error) {
     res.status(500).json({ error: 'Erreur serveur lors de la récupération' });
+  }
+};
+
+/**
+ * Récupérer tous les billets (pour operator ou admin)
+ */
+export const getAllTickets = async (req: AuthRequest, res: Response) => {
+  try {
+    const tickets = await getAllTicketsService();
+    res.json(tickets);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur serveur lors de la récupération de tous les billets' });
   }
 };
