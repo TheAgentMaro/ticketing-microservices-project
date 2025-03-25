@@ -3,6 +3,7 @@ import express from 'express';
 import ticketRoutes from '../routes/ticketRoutes';
 import { initTicketTable } from '../models/ticketModel';
 import jwt from 'jsonwebtoken';
+import { beforeAll, describe, it, expect } from '@jest/globals';
 
 const app = express();
 app.use(express.json());

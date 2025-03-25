@@ -5,9 +5,22 @@ import logger from '../utils/logger';
 dotenv.config();
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://rabbitmq:5672';
-let channel: amqp.Channel | null = null;
+let channel: any | null = null; // Temporary any, refine later if needed
 
-const connectRabbitMQ = async (): Promise<amqp.Channel> => {
+interface Channel {
+  assertQueue(queue: string, options?: { durable: boolean }): Promise<any>;
+  sendToQueue(queue: string, content: Buffer, options?: { persistent: boolean }): boolean;
+  consume(queue: string, onMessage: (msg: ConsumeMessage | null) => void, options?: { noAck: boolean }): Promise<any>;
+  ack(message: ConsumeMessage): void;
+}
+
+interface ConsumeMessage {
+  content: Buffer;
+  fields: any;
+  properties: any;
+}
+
+const connectRabbitMQ = async (): Promise<Channel> => {
   if (channel) return channel;
   try {
     const connection = await amqp.connect(RABBITMQ_URL);
@@ -35,7 +48,7 @@ export const sendToQueue = async (message: string) => {
  */
 export const consumeQueue = async () => {
   const ch = await connectRabbitMQ();
-  ch.consume('ticket_confirmation', (msg) => {
+  ch.consume('ticket_confirmation', (msg: ConsumeMessage | null) => {
     if (msg) {
       const content = msg.content.toString();
       logger.info(`Confirmation envoyée (simulation) : ${content}`);
