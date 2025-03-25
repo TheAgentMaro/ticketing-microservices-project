@@ -1,0 +1,12 @@
+{
+  "name": "ticketing-microservices-project",
+  "version": "1.0.0",
+  "description": "Supinfo Project : Microservices-based ticketing system for concerts and events",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
