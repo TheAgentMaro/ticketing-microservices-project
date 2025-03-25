@@ -65,6 +65,31 @@ services:
     networks:
       - ticketing-network
 
+  ticket-service:
+    build:
+      context: ./ticket-service
+      dockerfile: Dockerfile
+    ports:
+      - "3005:3004"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=ticketing
+      - DB_PORT=3306
+      - PORT=3004
+      - JWT_SECRET=your_secret_key_here_very_long_and_secure
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    volumes:
+      - ./ticket-service/swagger.yaml:/app/swagger.yaml
+    networks:
+      - ticketing-network
+
   mysql:
     image: mysql:8.0
     environment:
@@ -82,6 +107,14 @@ services:
       retries: 10
       interval: 5s
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"  # Port AMQP
+      - "15672:15672"  # Port de gestion (UI)
+    networks:
+      - ticketing-network
+
   nginx:
     image: nginx:latest
     ports:
@@ -92,6 +125,7 @@ services:
       - event-service
       - auth-service
       - user-service
+      - ticket-service
     networks:
       - ticketing-network
 
