@@ -8,6 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 COPY .env ./
+COPY types.d.ts ./
 
 # Installer les dépendances
 RUN npm install
