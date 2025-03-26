@@ -37,7 +37,7 @@ services:
       - DB_NAME=ticketing
       - DB_PORT=3306
       - PORT=3002
-      - JWT_SECRET=your_secret_key_here_very_long_and_secure
+      - JWT_SECRET=microservices
     volumes:
       - ./auth-service/swagger.yaml:/app/swagger.yaml
     networks:
@@ -59,7 +59,7 @@ services:
       - DB_NAME=ticketing
       - DB_PORT=3306
       - PORT=3003
-      - JWT_SECRET=your_secret_key_here_very_long_and_secure
+      - JWT_SECRET=microservices
     volumes:
       - ./user-service/swagger.yaml:/app/swagger.yaml
     networks:
@@ -83,7 +83,7 @@ services:
       - DB_NAME=ticketing
       - DB_PORT=3306
       - PORT=3004
-      - JWT_SECRET=your_secret_key_here_very_long_and_secure
+      - JWT_SECRET=microservices
       - RABBITMQ_URL=amqp://rabbitmq:5672
     volumes:
       - ./ticket-service/swagger.yaml:/app/swagger.yaml
