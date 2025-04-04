@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { registerUser, loginUser } from '../services/authService';
 import logger from '../utils/logger';
+import { sendAuthEvent } from '../utils/rabbitmq'; // Import sendAuthEvent
+import { findUserByUsername } from '../models/userModel';
+
 
 /**
  * Inscription d'un nouvel utilisateur
@@ -19,6 +22,13 @@ export const register = async (req: Request, res: Response) => {
   }
   try {
     const user = await registerUser({ username, password, role });
+    // Envoyer un événement d'inscription à RabbitMQ
+    await sendAuthEvent({
+      userId: user.id!,
+      username: user.username,
+      role: user.role,
+      action: 'register',
+    });
     res.status(201).json({ id: user.id, username: user.username, role: user.role });
   } catch (error) {
     res.status(400).json({ error: (error as Error).message || 'Erreur lors de l’inscription' });
@@ -38,6 +48,17 @@ export const login = async (req: Request, res: Response) => {
   }
   try {
     const token = await loginUser(username, password);
+    // Récupérer l'utilisateur pour envoyer ses informations à RabbitMQ
+    const user = await findUserByUsername(username);
+    if (user) {
+      // Envoyer un événement de connexion à RabbitMQ
+      await sendAuthEvent({
+        userId: user.id!,
+        username: user.username,
+        role: user.role,
+        action: 'login',
+      });
+    }
     res.json({ token });
   } catch (error) {
     res.status(401).json({ error: (error as Error).message || 'Erreur lors de la connexion' });

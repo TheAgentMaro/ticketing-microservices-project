@@ -8,16 +8,12 @@ export interface AuthRequest extends Request {
   user?: { id: number; username: string; role: string };
 }
 
-// Définir une interface pour le payload JWT
 interface JwtPayload {
   id: number;
   username: string;
   role: string;
 }
 
-/**
- * Middleware pour vérifier le token JWT
- */
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -27,22 +23,17 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     return res.status(401).json({ error: 'Token requis' });
   }
 
-  // Typage explicite avec les erreurs possibles de JWT
   jwt.verify(token, JWT_SECRET, (err: Error | null, decoded: unknown) => {
     if (err) {
       logger.warn(`Token invalide ou expiré : ${err.message}`);
       return res.status(403).json({ error: 'Token invalide' });
     }
 
-    // Vérifier que decoded correspond au JwtPayload
     req.user = decoded as JwtPayload;
     next();
   });
 };
 
-/**
- * Middleware pour limiter l'accès aux operators ou admins
- */
 export const restrictToOperatorOrAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
   const allowedRoles = ['operator', 'admin'];
   if (!req.user || !allowedRoles.includes(req.user.role)) {

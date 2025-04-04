@@ -1,55 +1,64 @@
 import { Request, Response } from 'express';
-import { buyTicket, getUserTicketsService, getAllTicketsService } from '../services/ticketService';
-import { AuthRequest } from '../middleware/authMiddleware';
+import { createTicket, getTicketsByUser, getAvailableTickets } from '../models/ticketModel';
 import logger from '../utils/logger';
+import { AuthRequest } from '../middleware/authMiddleware';
+import pool from '../config/db';
 
-/**
- * Acheter un billet
- */
-export const purchaseTicket = async (req: AuthRequest, res: Response) => {
-  const { eventId } = req.body;
-  const userId = req.user?.id;
+interface Ticket {
+  id?: number;
+  event_id: number;
+  user_id: number;
+  ticket_number: string;
+  purchase_date: string;
+}
 
-  if (!eventId || !userId) {
-    logger.warn('Tentative d’achat avec des champs manquants');
-    return res.status(400).json({ error: 'eventId et authentification requis' });
-  }
-
+export const purchaseTicket = async (userId: number, eventId: number): Promise<Ticket> => {
   try {
-    const ticket = await buyTicket(eventId, userId);
-    res.status(201).json(ticket);
+    // Vérifier le nombre de billets disponibles
+    const availableTickets = await getAvailableTickets(eventId);
+    if (availableTickets === -1) {
+      throw new Error('Événement non trouvé');
+    }
+    if (availableTickets <= 0) {
+      throw new Error('Aucune place disponible pour cet événement');
+    }
+
+    // Générer un numéro de billet unique (exemple simple)
+    const ticketNumber = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Créer le billet
+    const ticket: Ticket = {
+      event_id: eventId,
+      user_id: userId,
+      ticket_number: ticketNumber,
+      purchase_date: new Date().toISOString(),
+    };
+
+    const newTicket = await createTicket(ticket);
+    return newTicket;
   } catch (error) {
-    res.status(400).json({ error: (error as Error).message || 'Erreur lors de l’achat' });
+    logger.error(`Erreur lors de l'achat du billet: ${error}`);
+    throw error;
   }
 };
 
-/**
- * Récupérer les billets d’un utilisateur
- */
 export const getUserTickets = async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-
-  if (!userId) {
-    logger.warn('Tentative de récupération des billets sans utilisateur authentifié');
-    return res.status(401).json({ error: 'Authentification requise' });
-  }
-
   try {
-    const tickets = await getUserTicketsService(userId);
-    res.json(tickets);
+    const userId = req.user!.id;
+    const tickets = await getTicketsByUser(userId);
+    res.status(200).json(tickets);
   } catch (error) {
-    res.status(500).json({ error: 'Erreur serveur lors de la récupération' });
+    logger.error(`Erreur lors de la récupération des billets de l'utilisateur: ${error}`);
+    res.status(500).json({ error: "Erreur lors de la récupération des billets de l'utilisateur" });
   }
 };
 
-/**
- * Récupérer tous les billets (pour operator ou admin)
- */
 export const getAllTickets = async (req: AuthRequest, res: Response) => {
   try {
-    const tickets = await getAllTicketsService();
-    res.json(tickets);
+    const [rows] = await pool.query('SELECT * FROM tickets');
+    res.status(200).json(rows as Ticket[]);
   } catch (error) {
-    res.status(500).json({ error: 'Erreur serveur lors de la récupération de tous les billets' });
+    logger.error(`Erreur lors de la récupération de tous les billets: ${error}`);
+    res.status(500).json({ error: 'Erreur lors de la récupération de tous les billets' });
   }
 };

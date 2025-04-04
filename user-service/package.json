@@ -9,6 +9,7 @@
         "test": "jest"
     },
     "dependencies": {
+        "@ticketing/rabbitmq": "file:../shared/rabbitmq",
         "auth-service": "file:",
         "bcrypt": "^5.1.1",
         "dotenv": "^16.4.7",
