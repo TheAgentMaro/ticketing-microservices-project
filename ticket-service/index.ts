@@ -6,6 +6,7 @@ import { initTicketTable } from './models/ticketModel';
 import logger from './utils/logger';
 import dotenv from 'dotenv';
 import path from 'path';
+import { connectRabbitMQ, closeRabbitMQ } from './utils/rabbitmq'; // Importer les fonctions RabbitMQ
 
 dotenv.config();
 
@@ -47,21 +48,37 @@ const startServer = async () => {
     await initTicketTable();
     logger.info('Tableau des billets initialisé');
     
-    // Tentative de connexion à RabbitMQ désactivée temporairement pour le démarrage
-    // Décommenter ceci plus tard quand RabbitMQ sera configuré
-    /*
     try {
-      await consumeQueue();
+      await connectRabbitMQ(); // Appeler la fonction pour démarrer la connexion et la consommation
+      logger.info('Connexion et consommation des messages RabbitMQ démarrées');
     } catch (rmqError) {
       logger.warn(`Service démarré sans connexion à RabbitMQ: ${rmqError}`);
     }
-    */
     
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       logger.info(`Service de billetterie démarré sur le port ${PORT}`);
     });
+
+    // Gérer la fermeture gracieuse
+    const shutdown = async () => {
+      logger.info('Arrêt du serveur en cours...');
+      try {
+        await closeRabbitMQ(); // Fermer la connexion RabbitMQ
+        logger.info('Connexion RabbitMQ fermée avec succès');
+      } catch (error) {
+        logger.error(`Erreur lors de la fermeture de RabbitMQ: ${error}`);
+      }
+      server.close(() => {
+        logger.info('Serveur arrêté');
+        process.exit(0);
+      });
+    };
+
+    process.on('SIGINT', shutdown); // Ctrl+C
+    process.on('SIGTERM', shutdown); // Termination signal
   } catch (error) {
     logger.error(`Erreur au démarrage : ${error}`);
+    process.exit(1);
   }
 };
 
