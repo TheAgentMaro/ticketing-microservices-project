@@ -297,12 +297,12 @@ export const consumeQueue = async () => {
    ```
 
 3. Accéder à l'application :
-   - API Gateway : http://localhost:9090
+   - API Gateway : http://localhost:3000
    - Documentation Swagger :
-     - Events : http://localhost:9090/event-docs
-     - Auth : http://localhost:9090/auth-docs
-     - Users : http://localhost:9090/user-docs
-     - Tickets : http://localhost:9090/ticket-docs
+     - Events : http://localhost:3002/api-docs/
+     - Auth : http://localhost:3003/api-docs/
+     - Users : http://localhost:3004/api-docs/
+     - Tickets : http://localhost:3005/api-docs/
    - RabbitMQ Management : http://localhost:15672 (guest/guest)
 
 ## API Documentation
