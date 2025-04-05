@@ -9,6 +9,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "api-gateway": "file:",
     "express": "^4.21.2",
     "http-proxy-middleware": "^2.0.7",
     "winston": "^3.17.0"
