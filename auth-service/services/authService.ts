@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import { User, createUser, findUserByUsername } from '../models/userModel';
 import logger from '../utils/logger';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'microservices';
+const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key_here_very_long_and_secure';
 
 /**
  * Inscrire un nouvel utilisateur

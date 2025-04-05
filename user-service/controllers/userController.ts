@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { getAllUsersService, getUserByIdService, updateUserService, deleteUserService, createUserService } from '../services/userService';
 import { AuthRequest } from '../middleware/authMiddleware';
 import logger from '../utils/logger';
-import { sendUserUpdate } from '../utils/rabbitmq'; // Import sendUserUpdate
 
 /**
  * Créer un utilisateur (admin uniquement)
@@ -21,8 +20,6 @@ export const createUser = async (req: AuthRequest, res: Response) => {
 
   try {
     const user = await createUserService({ username, role, password });
-    // Envoyer un événement de création d'utilisateur à RabbitMQ
-    await sendUserUpdate({ userId: user.id!, action: 'created', details: { username, role } });
     res.status(201).json(user);
   } catch (error) {
     res.status(400).json({ error: (error as Error).message || 'Erreur serveur lors de la création' });
@@ -92,8 +89,6 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
   try {
     const user = await updateUserService(parseInt(id), { username, role });
     if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
-    // Envoyer un événement de mise à jour d'utilisateur à RabbitMQ
-    await sendUserUpdate({ userId: parseInt(id), action: 'updated', details: { username, role } });
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: 'Erreur serveur' });
@@ -108,8 +103,6 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
   try {
     const rowCount = await deleteUserService(parseInt(id));
     if (rowCount === 0) return res.status(404).json({ error: 'Utilisateur non trouvé' });
-    // Envoyer un événement de suppression d'utilisateur à RabbitMQ
-    await sendUserUpdate({ userId: parseInt(id), action: 'deleted' });
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: 'Erreur serveur' });

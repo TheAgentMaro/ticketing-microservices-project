@@ -7,7 +7,6 @@ import logger from './utils/logger';
 import dotenv from 'dotenv';
 import pool from './config/db';
 import path from 'path';
-import { initRabbitMQ, closeRabbitMQ } from './utils/rabbitmq'; // Importer les fonctions RabbitMQ
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -61,7 +60,7 @@ const testDatabaseConnection = async (retries = 5, delay = 5000) => {
   return false;
 };
 
-// Initialiser la base de données, RabbitMQ, et démarrer le serveur
+// Initialiser la base de données et démarrer le serveur
 const startServer = async () => {
   try {
     // Attendre que la base de données soit prête
@@ -73,39 +72,11 @@ const startServer = async () => {
     
     await initEventTable();
     logger.info('Tableau des événements initialisé');
-    
-    // Initialiser RabbitMQ
-    try {
-      await initRabbitMQ();
-      logger.info('Connexion et consommation des messages RabbitMQ démarrées');
-    } catch (rmqError) {
-      logger.warn(`Service démarré sans connexion à RabbitMQ: ${rmqError}`);
-    }
-    
-    const server = app.listen(PORT, () => {
+    app.listen(PORT, () => {
       logger.info(`Service événement démarré sur le port ${PORT}`);
     });
-
-    // Gérer la fermeture gracieuse
-    const shutdown = async () => {
-      logger.info('Arrêt du serveur en cours...');
-      try {
-        await closeRabbitMQ();
-        logger.info('Connexion RabbitMQ fermée avec succès');
-      } catch (error) {
-        logger.error(`Erreur lors de la fermeture de RabbitMQ: ${error}`);
-      }
-      server.close(() => {
-        logger.info('Serveur arrêté');
-        process.exit(0);
-      });
-    };
-
-    process.on('SIGINT', shutdown); // Ctrl+C
-    process.on('SIGTERM', shutdown); // Termination signal
   } catch (error) {
     logger.error(`Erreur au démarrage : ${error}`);
-    process.exit(1);
   }
 };
 
