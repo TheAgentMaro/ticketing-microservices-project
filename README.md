@@ -32,7 +32,8 @@ Ce projet implémente un système de billetterie pour des concerts et événemen
 ![Architecture du système](Architecture.png)
 L'application est basée sur une architecture microservices, avec les composants suivants :
 
-- **Nginx** : Sert de point d'entrée unique (API Gateway) et équilibreur de charge
+- **Nginx** : Sert de reverse proxy public et point d’entrée principal exposé sur le port 9090. Il redirige toutes les requêtes vers le service api-gateway.
+- **API Gateway** (Node.js) : Service intermédiaire intelligent, codé en Express.js, qui route les requêtes vers les bons microservices, applique des middlewares (authentification, logs) et centralise les règles de sécurité.
 - **Service d'authentification** : Gère l'inscription, la connexion et les tokens JWT
 - **Service utilisateur** : Gère les informations des utilisateurs
 - **Service événement** : Gère les informations sur les événements et les concerts
@@ -58,6 +59,19 @@ Ce service gère les événements (concerts), permettant leur création, modific
 Ce service gère l'achat de billets et envoie des confirmations asynchrones via RabbitMQ.
 - Endpoints : `POST /purchase`, `GET /my-tickets`, `GET /all` (opérateurs/admins uniquement)
 
+
+## 🔄 Flux des requêtes
+
+Voici le chemin parcouru par une requête API dans le système :
+
+1. L’utilisateur fait une requête vers `http://localhost:9090/api/...`
+2. **Nginx**, agissant comme reverse proxy, redirige cette requête vers le service `api-gateway` (port `3000`)
+3. **Le service `api-gateway`**, codé en Node.js avec Express, utilise `http-proxy-middleware` pour :
+    - rediriger dynamiquement vers le bon microservice (`auth`, `event`, `ticket`, `user`)
+    - appliquer des middlewares communs (authentification JWT, logs Winston, etc.)
+4. Le microservice concerné traite la requête et renvoie une réponse via l’API Gateway.
+
+
 ## Technologies utilisées
 
 - **Backend** : Node.js avec Express et TypeScript
@@ -79,46 +93,124 @@ Notre `docker-compose.yml` orchestre tous les services nécessaires. Assurez-vou
 ```yaml
 version: '3.8'
 services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - event-service
+      - auth-service
+      - user-service
+      - ticket-service
+    environment:
+      - PORT=3000
+    networks:
+      - ticketing-network
+
   event-service:
-    build: ./event-service
-    ports: ["3002:3001"]
-    depends_on: { mysql: { condition: service_healthy } }
-    environment: [DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, PORT]
-    volumes: ["./event-service/swagger.yaml:/app/swagger.yaml"]
-    networks: [ticketing-network]
+    build:
+      context: ./event-service
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=ticketing
+      - DB_PORT=3306
+      - PORT=3001
+      - JWT_SECRET=microservices
+    volumes:
+      - ./event-service/swagger.yaml:/app/swagger.yaml
+    networks:
+      - ticketing-network
 
   auth-service:
-    build: ./auth-service
-    ports: ["3003:3002"]
-    depends_on: { mysql: { condition: service_healthy } }
-    environment: [DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, PORT, JWT_SECRET]
-    volumes: ["./auth-service/swagger.yaml:/app/swagger.yaml"]
-    networks: [ticketing-network]
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3002"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=ticketing
+      - DB_PORT=3306
+      - PORT=3002
+      - JWT_SECRET=microservices
+    volumes:
+      - ./auth-service/swagger.yaml:/app/swagger.yaml
+    networks:
+      - ticketing-network
 
   user-service:
-    build: ./user-service
-    ports: ["3004:3003"]
-    depends_on: { mysql: { condition: service_healthy } }
-    environment: [DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, PORT, JWT_SECRET]
-    volumes: ["./user-service/swagger.yaml:/app/swagger.yaml"]
-    networks: [ticketing-network]
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    ports:
+      - "3004:3003"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=ticketing
+      - DB_PORT=3306
+      - PORT=3003
+      - JWT_SECRET=microservices
+    volumes:
+      - ./user-service/swagger.yaml:/app/swagger.yaml
+    networks:
+      - ticketing-network
 
   ticket-service:
-    build: ./ticket-service
-    ports: ["3005:3004"]
+    build:
+      context: ./ticket-service
+      dockerfile: Dockerfile
+    ports:
+      - "3005:3004"
     depends_on:
-      mysql: { condition: service_healthy }
-      rabbitmq: { condition: service_started }
-    environment: [DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, PORT, JWT_SECRET, RABBITMQ_URL]
-    volumes: ["./ticket-service/swagger.yaml:/app/swagger.yaml"]
-    networks: [ticketing-network]
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=ticketing
+      - DB_PORT=3306
+      - PORT=3004
+      - JWT_SECRET=microservices
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    volumes:
+      - ./ticket-service/swagger.yaml:/app/swagger.yaml
+    networks:
+      - ticketing-network
 
   mysql:
     image: mysql:8.0
-    environment: [MYSQL_ROOT_PASSWORD, MYSQL_DATABASE]
-    ports: ["3306:3306"]
-    volumes: [mysql-data:/var/lib/mysql]
-    networks: [ticketing-network]
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: ticketing
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - ticketing-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
       timeout: 5s
@@ -128,23 +220,31 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "5672:5672"    # Port AMQP
+      - "5672:5672"  # Port AMQP
       - "15672:15672"  # Port de gestion (UI)
-    environment: [RABBITMQ_DEFAULT_USER, RABBITMQ_DEFAULT_PASS]
-    volumes: [rabbitmq-data:/var/lib/rabbitmq]
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks: [ticketing-network]
+    networks:
+      - ticketing-network
 
   nginx:
     image: nginx:latest
-    ports: ["9090:80"]
-    volumes: ["./nginx/nginx.conf:/etc/nginx/nginx.conf"]
-    depends_on: [event-service, auth-service, user-service, ticket-service]
-    networks: [ticketing-network]
+    ports:
+      - "9090:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - api-gateway
+    networks:
+      - ticketing-network
 
 networks:
   ticketing-network:
@@ -298,11 +398,14 @@ export const consumeQueue = async () => {
 
 3. Accéder à l'application :
    - API Gateway : http://localhost:3000
+   - Nginx : http://localhost:9090
    - Documentation Swagger :
-     - Events : http://localhost:3002/api-docs/
-     - Auth : http://localhost:3003/api-docs/
-     - Users : http://localhost:3004/api-docs/
-     - Tickets : http://localhost:3005/api-docs/
+     | Service | URL |
+     |--------|-----|
+     | Events | [http://localhost:3002/api-docs](http://localhost:3002/api-docs) |
+     | Auth   | [http://localhost:3003/api-docs](http://localhost:3003/api-docs) |
+     | Users  | [http://localhost:3004/api-docs](http://localhost:3004/api-docs) |
+     | Tickets| [http://localhost:3005/api-docs](http://localhost:3005/api-docs) |
    - RabbitMQ Management : http://localhost:15672 (guest/guest)
 
 ## API Documentation

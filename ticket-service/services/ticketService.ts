@@ -48,7 +48,8 @@ export const buyTicket = async (eventId: number, userId: number): Promise<Ticket
     }
 
     const ticketNumber = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const purchaseDate = new Date().toISOString();
+    const now = new Date();
+    const purchaseDate = now.toISOString().slice(0, 19).replace('T', ' ');
     const ticket = await createTicket({ event_id: eventId, user_id: userId, ticket_number: ticketNumber, purchase_date: purchaseDate });
 
     // Envoyer une confirmation asynchrone via RabbitMQ

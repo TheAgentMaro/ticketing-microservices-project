@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import { User, createUser, findUserByUsername } from '../models/userModel';
 import logger from '../utils/logger';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key_here_very_long_and_secure';
+const JWT_SECRET = process.env.JWT_SECRET || 'microservices';
 
 /**
  * Inscrire un nouvel utilisateur
@@ -45,7 +45,7 @@ export const loginUser = async (username: string, password: string): Promise<str
       throw new Error('Mot de passe incorrect');
     }
     const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, {
-      expiresIn: '1h',
+      expiresIn: '30h',
     });
     logger.info(`Utilisateur connecté avec succès : ${username}`);
     return token;

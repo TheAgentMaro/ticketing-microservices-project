@@ -32,6 +32,7 @@ services:
       - DB_NAME=ticketing
       - DB_PORT=3306
       - PORT=3001
+      - JWT_SECRET=microservices
     volumes:
       - ./event-service/swagger.yaml:/app/swagger.yaml
     networks:

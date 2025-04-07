@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json());
 app.use('/api/tickets', ticketRoutes);
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key_here_very_long_and_secure';
+const JWT_SECRET = process.env.JWT_SECRET || 'microservices';
 
 beforeAll(async () => {
   await initTicketTable();
